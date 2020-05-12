@@ -92,7 +92,11 @@ class Collect extends Command
                     'file_dir' => substr($file_name, 0, 8),
                     'file_time' => substr($file_name, 9),
                 ];
-                if ($this->upload($file)) {
+
+                // 获取目录用来区分， 去掉根目录 和 文件名
+                $dir = str_replace($path . '/', '', $file);
+                $dir = str_replace('/'.$file_name . '.'.$ext, '', $dir);
+                if ($this->upload($file, $dir)) {
                     // 记录文件的类型、文件名
                     $create['file_status'] = 1;
 
@@ -149,21 +153,20 @@ class Collect extends Command
 
     /**
      * @param $file
+     * @param $dir 融媒体用来区分文件
      *
      * @description 上传附件到融媒体
      */
-    private function upload($file)
+    private function upload($file, $dir)
     {
         $params['time'] = time();
         $params['site_id'] = $this->siteid;
         $params['appid'] = $this->appid;
+        $params['dir'] = $dir;
         $params['sign'] = $this->getSign($params);
         $params['upload'] = new \CURLFile($file); // 文件信息等sign 生成在加
-
         $response = $this->requestImg($this->api, $params);
-
         $result = json_decode((string)$response, true);
-
         if ($result && $result['state']) {
             return true;
         } else {

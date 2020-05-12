@@ -10,9 +10,10 @@
 3、具体文件类型查看类型定义$filter_ext
 
 ## 部署命令
-1、配置env 中必要的变量  
-2、执行php artisan migrate  
-3、添加* * * * * php /path-to-your-project/artisan schedule:run >> /dev/null 2>&1
+1、配置env 中必要的变量         
+2、创建数据库、并进行env配置
+3、执行php artisan migrate  
+4、添加* * * * * php /path-to-your-project/artisan schedule:run >> /dev/null 2>&1
 
 
 ## 本地测试

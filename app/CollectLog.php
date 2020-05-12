@@ -21,6 +21,7 @@ class CollectLog extends Model
      */
     public static function getLastRow()
     {
-        return self::query()->orderBy('id', 'desc')->first()->toArray();
+        $row = self::query()->orderBy('id', 'desc')->first();
+        return $row ? $row->toArray() : [];
     }
 }
