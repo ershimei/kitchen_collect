@@ -166,6 +166,7 @@ class Collect extends Command
         $params['sign'] = $this->getSign($params);
         $params['upload'] = new \CURLFile($file); // 文件信息等sign 生成在加
         $response = $this->requestImg($this->api, $params);
+        var_dump($response);exit;
         $result = json_decode((string)$response, true);
         if ($result && $result['state']) {
             return true;
@@ -192,8 +193,8 @@ class Collect extends Command
     private function requestImg($url, $params)
     {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
         if (stripos($url, "https://") !== FALSE) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
