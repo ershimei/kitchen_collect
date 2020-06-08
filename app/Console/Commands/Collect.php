@@ -12,7 +12,7 @@ class Collect extends Command
      * @var array
      * @description  允许上传的文件类型
      */
-    private $filter_ext = ['txt', 'jpg', 'jpeg', 'JPG', 'xml', 'JPEG', 'png', 'PNG', 'gif', 'GIF', 'TXT'];
+    private $filter_ext = ['jpg', 'jpeg', 'JPG','JPEG', 'png', 'PNG', 'gif', 'GIF'];
 
     /**
      * The name and signature of the console command.
@@ -70,22 +70,19 @@ class Collect extends Command
             $last_row['file_time'] = 0;
         }
 
-        $file_array = [];
+        $img_file_array = [];
 
-        $this->tree($file_array, $path, $path, $last_row);
-        if (empty($file_array)) {
+        $this->tree($img_file_array, $path, $path, $last_row);
+        if (empty($img_file_array)) {
             return false;
         }
         try {
+            // 根据文件名排序
+            sort($img_file_array);
             // 循环上传获取所有的媒资
-            foreach ($file_array as $file) {
-
-                $ext = pathinfo($file, PATHINFO_EXTENSION);
+            foreach ($img_file_array as $file) {
                 $file_name = pathinfo($file, PATHINFO_FILENAME);
-
-                if (!in_array($ext, $this->filter_ext)) {
-                    continue;
-                }
+                $file_ext = pathinfo($file, PATHINFO_EXTENSION);
                 $create = [
                     'file_path' => $file,
                     'file_name' => $file_name,
@@ -95,8 +92,25 @@ class Collect extends Command
 
                 // 获取目录用来区分， 去掉根目录 和 文件名
                 $dir = str_replace($path . '/', '', $file);
-                $dir = str_replace('/'.$file_name . '.'.$ext, '', $dir);
-                if ($this->upload($file, $dir)) {
+                $dir = str_replace('/' . $file_name . '.' .$file_ext, '', $dir);
+                $params = [
+                    'dir' => $dir
+                ];
+                // 根据文件名找对应的xml 数据
+                $xml_file = str_replace($file_ext, 'xml', $file);
+
+                if (file_exists($xml_file)) {
+                    $xml_data = simplexml_load_string(file_get_contents($xml_file), 'SimpleXMLElement', LIBXML_NOCDATA);
+                    $xml_info = json_decode(json_encode($xml_data), true);
+                    $title = isset($xml_info['Items']['Item']['MetaInfo']['DescriptionMetaGroup']['Titles']['HeadLine']) ? $xml_info['Items']['Item']['MetaInfo']['DescriptionMetaGroup']['Titles']['HeadLine'] : '';
+                    $content = isset($xml_info['Items']['Item']['Contents']['ContentItem']['DataContent']) ? $xml_info['Items']['Item']['Contents']['ContentItem']['DataContent'] : '';
+
+                    $params['title'] = trim($title);
+                    $params['content'] = trim($content);
+
+                }
+
+                if ($this->upload($file, $params)) {
                     // 记录文件的类型、文件名
                     $create['file_status'] = 1;
 
@@ -132,10 +146,16 @@ class Collect extends Command
         {
             if((is_dir("$directory/$file")) AND ($file != ".") AND ($file != ".."))
             {
-                $this->tree($arr_file, "$directory/$file", "$dir_name/$file", $last_row);
+                $this->tree($arr_file,"$directory/$file", "$dir_name/$file", $last_row);
             }
             else if(($file != ".") AND ($file != ".."))
             {
+                // 允许通过的文件类型
+                $ext = pathinfo($file, PATHINFO_EXTENSION);
+                if (!in_array($ext, $this->filter_ext)) {
+                    continue;
+                }
+
                 // 添加一个比较点 如果当前文件的编号大于最后一次的文件编号 就收集
                 $file_name = pathinfo($file, PATHINFO_FILENAME);
                 $file_dir = substr($file_name, 0, 8);
@@ -153,20 +173,18 @@ class Collect extends Command
 
     /**
      * @param $file
-     * @param $dir 融媒体用来区分文件
+     * @param $params 参数
      *
      * @description 上传附件到融媒体
      */
-    private function upload($file, $dir)
+    private function upload($file, $params)
     {
         $params['time'] = time();
         $params['site_id'] = $this->siteid;
         $params['appid'] = $this->appid;
-        $params['dir'] = $dir;
         $params['sign'] = $this->getSign($params);
         $params['upload'] = new \CURLFile($file); // 文件信息等sign 生成在加
         $response = $this->requestImg($this->api, $params);
-        var_dump($response);exit;
         $result = json_decode((string)$response, true);
         if ($result && $result['state']) {
             return true;
